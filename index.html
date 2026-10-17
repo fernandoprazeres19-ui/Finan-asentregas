@@ -1,0 +1,375 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ganhos & Gastos | Entregador</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              accent: '#f59e0b',
+            },
+            expense: {
+              400: '#f87171',
+              500: '#ef4444',
+              600: '#dc2626',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Fontes Google & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Chart.js para visualização de gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .pulse-glow-income {
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    .pulse-glow-expense {
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col justify-between antialiased selection:bg-brand-500 selection:text-white pb-20 md:pb-6">
+
+  <!-- ================= HEADER TOP ================= -->
+  <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+    <div class="max-w-xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-brand-500/20">
+          <i class="fa-solid font-bold fa-motorcycle text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-base leading-tight text-white flex items-center gap-1.5">
+            Finanças do Entregador
+          </h1>
+          <p class="text-xs text-slate-400">Ganhos, Gastos e Lucro Real</p>
+        </div>
+      </div>
+
+      <!-- Ações do Header -->
+      <div class="flex items-center gap-2">
+        <button id="btn-open-goal" onclick="openGoalModal()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 transition-colors flex items-center gap-1.5 text-xs font-semibold border border-slate-700/60">
+          <i class="fa-solid fa-trophy"></i>
+          <span class="hidden sm:inline">Meta</span>
+        </button>
+        <button id="btn-export" onclick="exportData()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors text-xs font-semibold border border-slate-700/60" title="Exportar CSV">
+          <i class="fa-solid fa-file-export"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= CONTEÚDO PRINCIPAL ================= -->
+  <main class="max-w-xl mx-auto w-full px-4 pt-4 flex-1 space-y-4">
+
+    <!-- BOTÕES DE AÇÃO RÁPIDA: NOVO GANHO OU NOVO GASTO -->
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="openEntryModal('income')" class="pulse-glow-income bg-gradient-to-r from-brand-500 to-emerald-400 hover:from-brand-600 hover:to-emerald-500 text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl shadow-lg transition-all duration-200 transform active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base">
+        <i class="fa-solid fa-circle-plus text-lg"></i>
+        Lançar Ganho
+      </button>
+
+      <button onclick="openEntryModal('expense')" class="pulse-glow-expense bg-gradient-to-r from-red-500 to-rose-400 hover:from-red-600 hover:to-rose-500 text-slate-950 font-extrabold py-3.5 px-4 rounded-2xl shadow-lg transition-all duration-200 transform active:scale-[0.98] flex items-center justify-center gap-2 text-sm sm:text-base">
+        <i class="fa-solid fa-circle-minus text-lg"></i>
+        Lançar Gasto
+      </button>
+    </div>
+
+    <!-- SELETOR DE PERÍODO DOS CARDS -->
+    <div class="flex items-center justify-between bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 text-xs font-bold">
+      <button id="summary-tab-daily" onclick="switchSummaryPeriod('daily')" class="flex-1 py-1.5 rounded-xl transition-all text-white bg-slate-800 shadow">Hoje / Dia</button>
+      <button id="summary-tab-weekly" onclick="switchSummaryPeriod('weekly')" class="flex-1 py-1.5 rounded-xl transition-all text-slate-400 hover:text-white">Esta Semana</button>
+      <button id="summary-tab-monthly" onclick="switchSummaryPeriod('monthly')" class="flex-1 py-1.5 rounded-xl transition-all text-slate-400 hover:text-white">Este Mês</button>
+    </div>
+
+    <!-- CARDS DE RESUMO (GANHO BRUTO | GASTOS / PERDAS | LUCRO LÍQUIDO) -->
+    <section class="grid grid-cols-3 gap-2">
+      <!-- Card Ganho Bruto -->
+      <div class="glass-card p-3 rounded-2xl border-l-4 border-l-brand-500 relative overflow-hidden">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
+          <span>Ganhos</span>
+          <i class="fa-solid fa-arrow-up-right-dots text-brand-400"></i>
+        </div>
+        <div id="display-gross-income" class="text-xs sm:text-base font-black text-emerald-400 truncate">R$ 0,00</div>
+        <p id="display-income-count" class="text-[9px] text-slate-400 mt-1 truncate">0 entradas</p>
+      </div>
+
+      <!-- Card Gastos / Perdas -->
+      <div class="glass-card p-3 rounded-2xl border-l-4 border-l-red-500 relative overflow-hidden">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
+          <span>Gastos</span>
+          <i class="fa-solid fa-arrow-down-left-dots text-red-400"></i>
+        </div>
+        <div id="display-total-expenses" class="text-xs sm:text-base font-black text-red-400 truncate">R$ 0,00</div>
+        <p id="display-expense-count" class="text-[9px] text-slate-400 mt-1 truncate">0 saídas</p>
+      </div>
+
+      <!-- Card Lucro Líquido -->
+      <div class="glass-card p-3 rounded-2xl border-l-4 border-l-cyan-400 relative overflow-hidden bg-slate-800/90">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
+          <span>Lucro Líquido</span>
+          <i class="fa-solid fa-scale-balanced text-cyan-400"></i>
+        </div>
+        <div id="display-net-profit" class="text-xs sm:text-base font-black text-cyan-300 truncate">R$ 0,00</div>
+        <p id="display-net-status" class="text-[9px] text-slate-400 mt-1 truncate">Rendimento real</p>
+      </div>
+    </section>
+
+    <!-- CARD DE META DA SEMANA -->
+    <section class="glass-card p-4 rounded-2xl border border-slate-800 relative overflow-hidden">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-xs font-bold">
+            <i class="fa-solid fa-bullseye"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-bold text-slate-300">Meta de Lucro Semanal</h3>
+            <p id="goal-progress-text" class="text-[11px] text-slate-400">R$ 0,00 de R$ 0,00</p>
+          </div>
+        </div>
+        <span id="goal-percentage" class="text-xs font-extrabold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">0%</span>
+      </div>
+
+      <!-- Barra de Progresso -->
+      <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800">
+        <div id="goal-progress-bar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-2.5 rounded-full transition-all duration-500 w-0"></div>
+      </div>
+    </section>
+
+    <!-- VISUALIZAÇÃO GRÁFICA COMPARATIVA -->
+    <section class="glass-card p-4 rounded-2xl border border-slate-800">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-chart-column text-brand-400"></i> Ganhos vs. Gastos
+        </h3>
+        <span id="chart-period-label" class="text-[11px] font-medium text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">Últimos 7 dias</span>
+      </div>
+      <div class="h-48 w-full relative">
+        <canvas id="financialChart"></canvas>
+      </div>
+    </section>
+
+    <!-- SELETOR DE ABA & FILTROS DE HISTÓRICO -->
+    <section class="space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <!-- Abas de Período do Histórico -->
+        <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+          <button id="tab-btn-daily" onclick="switchTab('daily')" class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg transition-all text-white bg-slate-800 shadow">Diário</button>
+          <button id="tab-btn-weekly" onclick="switchTab('weekly')" class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white">Semanal</button>
+          <button id="tab-btn-monthly" onclick="switchTab('monthly')" class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white">Mensal</button>
+        </div>
+
+        <!-- Filtro por Tipo (Tudo / Ganhos / Gastos) -->
+        <div class="flex bg-slate-900/80 p-1 rounded-xl border border-slate-800/80 text-[11px] font-medium self-end sm:self-auto">
+          <button id="filter-type-all" onclick="setTypeFilter('all')" class="px-2.5 py-1 rounded-lg bg-slate-800 text-white font-bold">Tudo</button>
+          <button id="filter-type-income" onclick="setTypeFilter('income')" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-emerald-400">Ganhos</button>
+          <button id="filter-type-expense" onclick="setTypeFilter('expense')" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-red-400">Gastos</button>
+        </div>
+      </div>
+
+      <!-- LISTA DE LANÇAMENTOS -->
+      <div id="entries-list" class="space-y-2">
+        <!-- Itens inseridos via JS -->
+      </div>
+      
+      <div id="empty-state" class="hidden glass-card p-8 rounded-2xl text-center border border-dashed border-slate-800">
+        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-900 text-slate-500 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-receipt"></i>
+        </div>
+        <p class="text-slate-300 font-semibold text-sm">Nenhum registro localizado neste período</p>
+        <p class="text-slate-500 text-xs mt-1">Toque nos botões do topo para registrar seus ganhos ou despesas.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL: NOVO LANÇAMENTO / EDIÇÃO ================= -->
+  <div id="modal-entry" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200 p-0 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-200 max-h-[90vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 id="modal-title" class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-wallet text-brand-400"></i> Novo Lançamento
+        </h3>
+        <button onclick="closeEntryModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form id="form-entry" onsubmit="handleFormSubmit(event)" class="space-y-4 pt-4">
+        <input type="hidden" id="entry-id">
+
+        <!-- TOGGLE DE TIPO: GANHO OU GASTO/PERDA -->
+        <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+          <button type="button" id="btn-type-income" onclick="setEntryType('income')"
+            class="py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 bg-brand-500 text-slate-950 shadow">
+            <i class="fa-solid fa-arrow-trend-up"></i>
+            GANHO / FATURAMENTO
+          </button>
+          <button type="button" id="btn-type-expense" onclick="setEntryType('expense')"
+            class="py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-arrow-trend-down"></i>
+            GASTO / PERDA
+          </button>
+        </div>
+
+        <!-- Campo Valor -->
+        <div>
+          <label class="block text-[11px] font-extrabold text-slate-400 mb-1">VALOR (R$)</label>
+          <div class="relative">
+            <span id="currency-symbol" class="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-brand-400">R$</span>
+            <input type="number" id="entry-amount" step="0.01" min="0.01" placeholder="0,00" required
+              class="w-full bg-slate-950 border border-slate-800 rounded-2xl py-3.5 pl-14 pr-4 text-2xl font-black text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+          </div>
+        </div>
+
+        <!-- Atalhos de Valor Rápido -->
+        <div class="flex gap-2 overflow-x-auto pb-1">
+          <button type="button" onclick="addQuickAmount(10)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700/50">+R$10</button>
+          <button type="button" onclick="addQuickAmount(20)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700/50">+R$20</button>
+          <button type="button" onclick="addQuickAmount(50)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700/50">+R$50</button>
+          <button type="button" onclick="addQuickAmount(100)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700/50">+R$100</button>
+        </div>
+
+        <!-- Campo Data e Categoria -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-extrabold text-slate-400 mb-1">DATA</label>
+            <input type="date" id="entry-date" required
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm text-white focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label id="category-label" class="block text-[11px] font-extrabold text-slate-400 mb-1">CATEGORIA / ORIGEM</label>
+            <select id="entry-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm text-white focus:outline-none focus:border-brand-500">
+              <!-- Preenchido dinamicamente pelo JS conforme o Tipo (Income/Expense) -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Campo Observação -->
+        <div>
+          <label class="block text-[11px] font-extrabold text-slate-400 mb-1">OBSERVAÇÃO / DETALHES (OPCIONAL)</label>
+          <input type="text" id="entry-note" placeholder="Ex: Troca de óleo, corrida da chuva, almoço..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm text-white focus:outline-none focus:border-brand-500">
+        </div>
+
+        <!-- Botões -->
+        <div class="pt-2 flex gap-3">
+          <button type="button" onclick="closeEntryModal()" class="w-1/3 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" id="btn-submit-entry" class="w-2/3 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-slate-950 font-extrabold text-sm shadow-lg transition-all">
+            Salvar Lançamento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: DEFINIR META ================= -->
+  <div id="modal-goal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200 p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-trophy text-amber-400"></i> Meta de Lucro Semanal
+        </h3>
+        <button onclick="closeGoalModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 pt-4">
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Defina sua meta de **LUCRO LÍQUIDO** (Ganhos menos Despesas) por semana.
+        </p>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">META SEMANAL (R$)</label>
+          <input type="number" id="goal-input" step="50" min="0" placeholder="Ex: 800"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-xl font-bold text-amber-400 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="flex gap-2">
+          <button onclick="closeGoalModal()" class="w-1/3 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">Cancelar</button>
+          <button onclick="saveGoal()" class="w-2/3 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs">Salvar Meta</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TOAST NOTIFICATION ================= -->
+  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 border border-slate-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-semibold opacity-0 pointer-events-none transition-all duration-300">
+    <i id="toast-icon" class="fa-solid fa-circle-check text-brand-400"></i>
+    <span id="toast-message">Operação realizada com sucesso!</span>
+  </div>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    // ESTADO DA APLICAÇÃO
+    const STORAGE_KEY_ENTRIES = 'entregador_ganhos_gastos_v2';
+    const STORAGE_KEY_GOAL = 'entregador_meta_semanal_v2';
+
+    let entries = [];
+    let weekly
